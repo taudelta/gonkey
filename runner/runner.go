@@ -14,6 +14,7 @@ import (
 	"github.com/lamoda/gonkey/mocks"
 	"github.com/lamoda/gonkey/models"
 	"github.com/lamoda/gonkey/output"
+	"github.com/lamoda/gonkey/setup"
 	"github.com/lamoda/gonkey/testloader"
 	"github.com/lamoda/gonkey/variables"
 )
@@ -24,12 +25,16 @@ type Config struct {
 	Mocks          *mocks.Mocks
 	MocksLoader    *mocks.Loader
 	Variables      *variables.Variables
+	OnStartUp      []setup.StartUpFunction
+	OnTeardown     []setup.TeardownFunction
 }
 
 type Runner struct {
 	loader   testloader.LoaderInterface
 	output   []output.OutputInterface
 	checkers []checker.CheckerInterface
+	startup  []setup.StartUpFunction
+	teardown []setup.TeardownFunction
 
 	config *Config
 }
@@ -95,6 +100,12 @@ func (r *Runner) Run() (*models.Summary, error) {
 			}
 		}
 
+		for _, fn := range r.startup {
+			if err := fn(v); err != nil {
+				return nil, err
+			}
+		}
+
 		testResult, err := r.executeTest(v, client)
 		switch {
 		case err != nil && errors.Is(err, errTestSkipped):
@@ -112,6 +123,12 @@ func (r *Runner) Run() (*models.Summary, error) {
 		}
 		for _, o := range r.output {
 			if err := o.Process(v, testResult); err != nil {
+				return nil, err
+			}
+		}
+
+		for _, fn := range r.teardown {
+			if err := fn(v); err != nil {
 				return nil, err
 			}
 		}
