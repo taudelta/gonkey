@@ -36,9 +36,18 @@ type config struct {
 	DbType           string
 }
 
+type StorageType string
+
+const (
+	SQL       StorageType = "DB"
+	Aerospike StorageType = "Aerospike"
+	Redis     StorageType = "Redis"
+)
+
 type storages struct {
 	db        *sql.DB
 	aerospike *aerospikeAdapter.Client
+	registry  map[StorageType]interface{}
 }
 
 func main() {
@@ -49,11 +58,11 @@ func main() {
 
 	fixturesLoader := initLoaders(storages, cfg)
 
-	runner := initRunner(cfg, fixturesLoader)
+	runnerInstance := initRunner(cfg, fixturesLoader)
 
-	addCheckers(runner, storages.db)
+	addCheckers(runnerInstance, storages.db)
 
-	run(runner, cfg)
+	run(runnerInstance, cfg)
 }
 
 func initStorages(cfg config) storages {
@@ -62,12 +71,13 @@ func initStorages(cfg config) storages {
 	return storages{
 		db:        db,
 		aerospike: aerospikeClient,
+		registry:  make(map[StorageType]interface{}),
 	}
 }
 
 func initLoaders(storages storages, cfg config) fixtures.Loader {
 	var fixturesLoader fixtures.Loader
-	if (storages.db != nil || storages.aerospike != nil) && cfg.FixturesLocation != "" {
+	if (storages.db != nil || storages.aerospike != nil || len(storages.registry) > 0) && cfg.FixturesLocation != "" {
 		fixturesLoader = fixtures.NewLoader(&fixtures.Config{
 			DB:        storages.db,
 			Aerospike: storages.aerospike,

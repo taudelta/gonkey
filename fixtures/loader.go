@@ -18,12 +18,14 @@ const (
 	Postgres DbType = iota
 	Mysql
 	Aerospike
+	CustomLoader
 )
 
 const (
-	PostgresParam  = "postgres"
-	MysqlParam     = "mysql"
-	AerospikeParam = "aerospike"
+	PostgresParam     = "postgres"
+	MysqlParam        = "mysql"
+	AerospikeParam    = "aerospike"
+	CustomLoaderParam = "custom"
 )
 
 type Config struct {
@@ -32,6 +34,7 @@ type Config struct {
 	DbType    DbType
 	Location  string
 	Debug     bool
+	Loaders   []Loader
 }
 
 type Loader interface {
@@ -64,6 +67,9 @@ func NewLoader(cfg *Config) Loader {
 			cfg.Debug,
 		)
 	default:
+		if len(cfg.Loaders) > 0 {
+			return cfg.Loaders[0]
+		}
 		panic("unknown db type")
 	}
 
@@ -78,6 +84,8 @@ func FetchDbType(dbType string) DbType {
 		return Mysql
 	case AerospikeParam:
 		return Aerospike
+	case CustomLoaderParam:
+		return CustomLoader
 	default:
 		panic("unknown db type param")
 	}

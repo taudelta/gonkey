@@ -1,0 +1,17 @@
+databases:
+  1:
+    maps:
+      map1:
+        $name: baseMap
+        a: 1
+        b: 2
+      map2:
+        a: $baseMap.a
+        b: $baseMap.b
+    keys:
+      key1:
+        $name: baseKey
+        value: value1
+      key2:
+        expiration: 10s
+        value: $baseKey
